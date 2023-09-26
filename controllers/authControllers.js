@@ -28,78 +28,73 @@ const register = async (req, res, next) => {
     let user = await newUser.save();
 
     // generate verification token
-    // const token = await new Token({
-    //   userId: user._id,
-    //   token: crypto.randomBytes(32).toString('hex'),
-    // });
-    // await token.save();
+    const token = await new Token({
+      userId: user._id,
+      token: crypto.randomBytes(32).toString('hex'),
+    });
+    await token.save();
 
     // send mail
-    // const link = `http://localhost://3035/api/auth/confirm/${token.token}`;
-    // await verifyMail(user.email, link);
-    // res.json({
-    //   status: 200,
-    //   message: 'Email sent, check your mail...',
-    // });
-
+    const link = `${process.env.BASE_URL}users/${user._id}/confirm/${token.token}`;
+    await verifyMail(user.email, link);
     res.json({
       status: 200,
-      message: 'Registration Successful, Login...',
+      message: 'Email sent, check your mail...',
     });
+
+    // res.json({
+    //   status: 200,
+    //   message: 'Registration Successful, Login...',
+    // });
   } catch (error) {
     next(error);
+    return;
   }
 };
 
 // FOR EMAIL VERIFICATION
-// const verifyUser = async (req, res) => {
-//   try {
-//     const user = await User.findOne({ _id: req.params.id });
-//     if (!user) {
-//       res.json({
-//         status: 400,
-//         message: 'Invalid Link',
-//       });
-//     }
+const verifyUser = async (req, res) => {
+  try {
+    const user = await User.findOne({ _id: req.params.id });
+    if (!user) {
+      res.json({
+        status: 400,
+        message: 'Invalid Link',
+      });
+    }
 
-//     const token = await Token.findOne({ token: req.params.token });
-//     console.log(token);
-//     await User.updateOne({ _id: token.userId }, { $set: { verified: true } });
-//     await Token.findByIdAndRemove(token);
-//     res.json({
-//       message: 'email verified successfully, you can now login...',
-//       status: 200,
-//     });
-//   } catch (error) {
-//     res.json({
-//       status: 400,
-//       message: 'Email validation error',
-//     });
-//   }
-// };
+    const token = await Token.findOne({
+      userId: user._id,
+      token: req.params.token,
+    });
+
+    if (!token) {
+      res.json({
+        status: 400,
+        message: 'Invalid link',
+      });
+      return;
+    }
+
+    await User.updateOne({ _id: token.userId }, { $set: { verified: true } });
+    await Token.findByIdAndRemove(token);
+    res.json({
+      message: 'email verified successfully, you can now login...',
+      status: 200,
+    });
+  } catch (error) {
+    res.json({
+      status: 400,
+      message: 'Email validation error',
+    });
+    return;
+  }
+};
 
 const authUser = async (req, res, next) => {
   const { email, password } = req.body;
   try {
     const validUser = await User.findOne({ email });
-
-    // USER EMAIL VERIFICATION CHECK
-    // if (validUser.verified === false) {
-    //   let token = await Token.findOne({ userId: validUser._id });
-    //   if (!token) {
-    //     token = await new Token({
-    //       userId: validUser._id,
-    //       token: crypto.randomBytes(32).toString('hex'),
-    //     });
-    //     await token.save();
-    //     const url = `${process.env.BASE_URL}users/${validUser._id}/verify/${token.token}`;
-    //     await sendEmail(validUser.email, 'Verify Email', url);
-    //   }
-    //   return res.json({
-    //     status: 400,
-    //     message: 'An email sent to your account please verify',
-    //   });
-    // }
 
     if (!validUser) {
       return next(errorHandler(404, 'Invalid user'));
@@ -109,15 +104,44 @@ const authUser = async (req, res, next) => {
       return next(errorHandler(404, 'Invalid user'));
     }
 
+    if (validUser.verified === false) {
+      let token = await Token.findOne({ userId: validUser._id });
+      if (!token) {
+        token = await new Token({
+          userId: validUser._id,
+          token: crypto.randomBytes(32).toString('hex'),
+        });
+        await token.save();
+
+        const link = `${process.env.BASE_URL}users/${validUser._id}/confirm/${token.token}`;
+
+        await sendEmail(validUser.email, link);
+        res.json({
+          status: 200,
+          success: false,
+          message: 'Verification email has been sent to your email',
+        });
+        return;
+      }
+      return res.json({
+        status: 400,
+        success: false,
+        message: 'Email sent to your account, Verify',
+      });
+    }
+
     const { password: hashedPassword, ...others } = validUser._doc;
 
     generateToken(res, validUser._id);
     res.status(201).json({
       others,
+      success: true,
       message: `${validUser.firstName} your login is successful`,
     });
+    return;
   } catch (error) {
     next(errorHandler(400, 'Invalid Token'));
+    return;
   }
 };
 
@@ -128,4 +152,4 @@ const userLogout = async (req, res) => {
   });
 };
 
-export { register, authUser, userLogout };
+export { register, authUser, userLogout, verifyUser };

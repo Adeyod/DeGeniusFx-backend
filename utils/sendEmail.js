@@ -55,9 +55,10 @@ import nodemailer from 'nodemailer';
 const verifyMail = async (email, link) => {
   try {
     let transporter = nodemailer.createTransport({
-      service: 'Gmail',
-      port: 465,
-      host: 'smtp.gmail.com',
+      host: process.env.HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.SECURE,
+      service: process.env.SERVICE,
       auth: {
         user: process.env.USER,
         pass: process.env.PASS,
@@ -77,13 +78,15 @@ const verifyMail = async (email, link) => {
       // body of the mail
       html: `
       <div>
-      <a href=${link}>Click here to verify your account</a>
+      <p>Thank you for registering. Please verify your account as this link expires in 30 mins</p>
+      <a href=${link}>Click here to verify your account...</a>
       </div>
       `,
     });
     console.log('Email send successfully');
   } catch (error) {
     console.log(error, 'Error sending email');
+    return;
   }
 };
 
