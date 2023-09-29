@@ -5,8 +5,8 @@ import { errorHandler } from '../middleware/errorHandler.js';
 import generateToken from '../utils/verifyToken.js';
 import Token from '../models/tokenModels.js';
 import crypto from 'crypto';
-import sendEmail from '../utils/sendEmail.js';
-import verifyMail from '../utils/sendEmail.js';
+// import sendEmail from '../utils/sendEmail.js';
+import { verifyMail, passwordReset } from '../utils/sendEmail.js';
 
 const register = async (req, res, next) => {
   const { firstName, lastName, email, password, address } = req.body;
@@ -152,4 +152,95 @@ const userLogout = async (req, res) => {
   });
 };
 
-export { register, authUser, userLogout, verifyUser };
+const forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+  try {
+    const user = await User.findOne({ email: req.body.email });
+
+    if (!user) {
+      return res.json({
+        status: 400,
+        message: 'User not found',
+      });
+    } else {
+      const generatedToken = crypto.randomBytes(64).toString('hex');
+      console.log(generatedToken);
+      const token = jwt.sign(
+        {
+          id: user._id,
+          extra: generatedToken,
+        },
+        process.env.JWT_SECRET,
+        {
+          expiresIn: '1h',
+        }
+      );
+      user.resetToken = token;
+      await user.save();
+
+      // password reset link to be sent to user
+      const link = `${process.env.BASE_URL}reset-password/${user._id}/${token}`;
+
+      passwordReset(user.email, link);
+      res.json({
+        status: 200,
+        success: true,
+        message: 'Check your email to change your password...',
+      });
+    }
+  } catch (error) {
+    return res.json({ status: 400, message: 'Internal Error' });
+  }
+};
+const resetPassword = async (req, res, next) => {
+  const { id, token } = req.params;
+
+  const { oldPassword, newPassword } = req.body;
+
+  jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+    if (err) {
+      res.json({
+        status: 401,
+        message: 'Invalid Token',
+      });
+    } else {
+      const user = await User.findOne({ resetToken: token });
+      if (user) {
+        const validOldPassword = bcrypt.compareSync(oldPassword, user.password);
+        if (!validOldPassword) {
+          return res.json({
+            status: 400,
+            success: false,
+            message: 'Wrong credential',
+          });
+        } else {
+          const hashedPassword = await bcrypt.hash(newPassword, 10);
+          const newUserPass = await User.findByIdAndUpdate(
+            {
+              _id: id,
+            },
+            { password: hashedPassword, $set: { resetToken: '' } }
+          );
+
+          const saveNewUser = await newUserPass.save();
+
+          return res.json({
+            status: 200,
+            success: true,
+            saveNewUser,
+            message: 'Password changed successfully. You can login...',
+          });
+        }
+      }
+    }
+  });
+};
+
+export {
+  register,
+  authUser,
+  userLogout,
+  verifyUser,
+  resetPassword,
+  forgotPassword,
+};
