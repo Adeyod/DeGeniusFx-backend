@@ -33,7 +33,7 @@ app.use(
 app.use(
   cors({
     // origin: process.env.BASE_URL,
-    origin: 'https://degeniusfx-frontend.onrender.com/',
+    origin: 'https://degeniusfx-frontend.onrender.com',
     // origin: 'http://localhost:5174',
     methods: 'GET, POST, PUT, DELETE',
     credentials: true,
