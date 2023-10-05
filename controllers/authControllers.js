@@ -2,7 +2,7 @@ import User from '../models/userModels.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { errorHandler } from '../middleware/errorHandler.js';
-import generateToken from '../utils/verifyToken.js';
+import { generateToken } from '../utils/verifyToken.js';
 import Token from '../models/tokenModels.js';
 import crypto from 'crypto';
 // import sendEmail from '../utils/sendEmail.js';
