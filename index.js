@@ -32,7 +32,7 @@ app.use(
 
 app.use(
   cors({
-    origin: '*',
+    origin: 'https://degeniusfx-frontend.onrender.com',
     methods: 'GET, POST, PUT, DELETE',
     credentials: true,
   })
