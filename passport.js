@@ -9,13 +9,13 @@ import { profile } from 'console';
 
 dotenv.config();
 
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-passport.deserializeUser((user, done) => {
-  const { password, ...others } = user;
-  done(null, others);
-});
+// passport.serializeUser((user, done) => {
+//   done(null, user);
+// });
+// passport.deserializeUser((user, done) => {
+//   const { password, ...others } = user;
+//   done(null, others);
+// });
 
 const passportGoogleStrategy = (passport) => {
   passport.use(
@@ -53,5 +53,13 @@ const passportGoogleStrategy = (passport) => {
     )
   );
 };
+
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((user, done) => {
+  const { password, ...others } = user;
+  done(null, others);
+});
 
 export default passportGoogleStrategy;
