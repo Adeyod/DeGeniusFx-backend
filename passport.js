@@ -23,7 +23,9 @@ const passportGoogleStrategy = (passport) => {
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: '/auth/google/callback',
+        callbackURL:
+          'https://degeniusfx-backend.onrender.com/auth/google/callback',
+        // callbackURL: '/auth/google/callback',
       },
       async function (accessToken, refreshToken, profile, done) {
         let user = await User.findOne({ providerId: profile.id });
