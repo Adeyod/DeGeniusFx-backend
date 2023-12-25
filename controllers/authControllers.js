@@ -10,6 +10,60 @@ import { verifyMail, passwordReset } from '../utils/sendEmail.js';
 
 const register = async (req, res, next) => {
   const { firstName, lastName, email, password, address } = req.body;
+
+  if (!firstName || !lastName || !email || !password) {
+    return res.json({
+      message: 'All fields are required',
+      status: 400,
+      success: false,
+    });
+  }
+
+  const trimmedEmail = email.trim();
+  const trimmedFirstName = firstName.trim();
+  const trimmedLastName = lastName.trim();
+
+  // check for valid email
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return res.json({
+      message: 'Invalid input for email...',
+      status: 401,
+      success: false,
+    });
+  }
+
+  // check the firstName field to prevent input of unwanted characters
+  if (!/^[a-zA-Z0-9 -]+$/.test(trimmedFirstName)) {
+    return res.json({
+      message: 'Invalid input for first name...',
+      status: 400,
+      success: false,
+    });
+  }
+
+  // check the lastName field to prevent input of unwanted characters
+  if (!/^[a-zA-Z0-9 -]+$/.test(trimmedLastName)) {
+    return res.json({
+      message: 'Invalid input for the last name...',
+      status: 400,
+      success: false,
+    });
+  }
+
+  // strong password check
+  if (
+    !/^(?=.*[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-])(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9]).{8,20}$/.test(
+      password
+    )
+  ) {
+    return res.json({
+      message:
+        'Password must contain at least 1 special character, 1 lowercase letter, and 1 uppercase letter. Also it must be minimum of 8 characters and maximum of 20 characters',
+      success: false,
+      status: 401,
+    });
+  }
+
   const verifyUser = await User.findOne({ email });
   if (verifyUser) {
     return next(errorHandler(404, 'User already exist'));
@@ -93,6 +147,33 @@ const verifyUser = async (req, res) => {
 
 const authUser = async (req, res, next) => {
   const { email, password } = req.body;
+  if (!email || !password) {
+    return res.json({
+      message: 'All fields are required...',
+      status: 401,
+      success: false,
+    });
+  }
+
+  // check for email format
+  const trimmedEmail = email.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+    return res.json({
+      message: 'Invalid format in email field...',
+      status: 401,
+      success: false,
+    });
+  }
+
+  // check for password length
+  if (password.length < 8 || password.length > 20) {
+    return res.json({
+      message:
+        'Password must be minimum of 8 characters and  maximum of 20 characters',
+      status: 411,
+      success: false,
+    });
+  }
   try {
     const validUser = await User.findOne({ email });
 
